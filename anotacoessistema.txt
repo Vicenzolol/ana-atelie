@@ -1,1 +1,6 @@
 Corrigir ao excluir venda excluir também itens de venda
+O que precisa mudar no site:
+- Registrar pagamento, está dando erro na hora de registrar.
+- ⁠O botão de adicionar o valor do pagamento.
+- ⁠Está duplicando o valor das vendas (as vezes)
+- ⁠adicionar (se possível) um lembrete de que tem encomenda.

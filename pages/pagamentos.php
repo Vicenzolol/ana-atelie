@@ -66,6 +66,12 @@ require_once "../includes/header.php";
             <button class='btn btn-sm bg-info' onclick='verDetalhesVenda(" . $row['venda_id'] . ")'>
                 Ver Detalhes
             </button>
+            <button class='btn btn-sm btn-edit' onclick='editarPagamento(" . $row['id'] . ", " . $row['venda_id'] . ", \"" . $row['data_pagamento'] . "\", " . $row['valor'] . ")'>
+                Editar
+            </button>
+            <button class='btn btn-sm bg-danger' onclick='excluirPagamento(" . $row['id'] . ", " . $row['venda_id'] . ")'>
+                Excluir
+            </button>
           </td>";
             echo "</tr>";
         }
@@ -85,6 +91,37 @@ require_once "../includes/header.php";
                 <div id="detalhesVendaConteudo">
                     <!-- Conteúdo será preenchido via JavaScript -->
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Pagamento -->
+<div class="modal fade" id="editarPagamentoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Pagamento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEditarPagamento">
+                    <input type="hidden" id="pagamento_id" name="id">
+                    <input type="hidden" id="pagamento_venda_id" name="venda_id">
+
+                    <div class="mb-3">
+                        <label for="valor_pagamento" class="form-label">Valor</label>
+                        <input type="number" step="0.01" class="form-control" id="valor_pagamento" name="valor" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="data_pagamento" class="form-label">Data do Pagamento</label>
+                        <input type="date" class="form-control" id="data_pagamento" name="data_pagamento" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="salvarEdicaoPagamento()">Salvar</button>
             </div>
         </div>
     </div>
@@ -155,6 +192,158 @@ require_once "../includes/header.php";
                 alert("Erro ao buscar detalhes da venda");
                 console.error(error);
             });
+    }
+
+    function editarPagamento(id, vendaId, dataPagamento, valor) {
+        // Preencher o formulário com os dados atuais
+        document.getElementById('pagamento_id').value = id;
+        document.getElementById('pagamento_venda_id').value = vendaId;
+
+        // Debugging para identificar o formato exato da data recebida
+        console.log("Data original:", dataPagamento);
+
+        // Formatar a data para o formato aceito pelo input date (YYYY-MM-DD)
+        let dataFormatada;
+
+        // Primeiro, verifica se a data já está no formato MySQL (YYYY-MM-DD)
+        if (/^\d{4}-\d{2}-\d{2}/.test(dataPagamento)) {
+            dataFormatada = dataPagamento.split(' ')[0]; // Pega apenas a parte da data
+        }
+        // Se for uma data formatada pelo PHP (DD/MM/YYYY)
+        else if (/^\d{2}\/\d{2}\/\d{4}/.test(dataPagamento)) {
+            const partes = dataPagamento.split('/');
+            dataFormatada = `${partes[2].split(' ')[0]}-${partes[1]}-${partes[0]}`;
+        }
+        // Se for qualquer outro formato, tenta converter
+        else {
+            try {
+                // Tenta converter a string para um objeto Date
+                const dataObj = new Date(dataPagamento);
+                if (!isNaN(dataObj.getTime())) {
+                    const ano = dataObj.getFullYear();
+                    const mes = String(dataObj.getMonth() + 1).padStart(2, '0');
+                    const dia = String(dataObj.getDate()).padStart(2, '0');
+                    dataFormatada = `${ano}-${mes}-${dia}`;
+                } else {
+                    // Se a conversão falhou, use a data atual
+                    const hoje = new Date();
+                    const ano = hoje.getFullYear();
+                    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+                    const dia = String(hoje.getDate()).padStart(2, '0');
+                    dataFormatada = `${ano}-${mes}-${dia}`;
+                    console.error("Data inválida, usando hoje:", dataFormatada);
+                }
+            } catch (error) {
+                console.error("Erro ao processar data:", error);
+                // Fallback para a data atual em caso de erro
+                const hoje = new Date();
+                dataFormatada = hoje.toISOString().split('T')[0];
+            }
+        }
+
+        console.log("Data formatada:", dataFormatada);
+        document.getElementById('data_pagamento').value = dataFormatada;
+        document.getElementById('valor_pagamento').value = valor;
+
+        // Abrir o modal
+        const modal = new bootstrap.Modal(document.getElementById('editarPagamentoModal'));
+        modal.show();
+    }
+
+    function salvarEdicaoPagamento() {
+        const id = document.getElementById('pagamento_id').value;
+        const vendaId = document.getElementById('pagamento_venda_id').value;
+        const valor = parseFloat(document.getElementById('valor_pagamento').value);
+        const data = document.getElementById('data_pagamento').value;
+
+        if (!valor || valor <= 0) {
+            alert('Por favor, informe um valor válido');
+            return;
+        }
+
+        // Primeiro vamos verificar o valor total da venda e o total já pago
+        fetch("../processar/pagamentos.php", {
+                method: "POST",
+                body: new URLSearchParams({
+                    acao: "verificar_limite_pagamento",
+                    id: id,
+                    venda_id: vendaId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    const valorTotalVenda = data.valor_total;
+                    const totalPagoOutros = data.total_pago_outros;
+                    const valorRestante = valorTotalVenda - totalPagoOutros;
+
+                    if (valor > valorRestante) {
+                        alert(`O valor do pagamento (R$ ${valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}) não pode ser maior que o valor restante disponível (R$ ${valorRestante.toLocaleString('pt-BR', {minimumFractionDigits: 2})})`);
+                        return;
+                    }
+
+                    // Se o valor é válido, prosseguir com a edição
+                    realizarEdicaoPagamento(id, vendaId, valor, data);
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(error => {
+                alert("Erro ao verificar limites de pagamento: " + error.message);
+                console.error(error);
+            });
+    }
+
+    function realizarEdicaoPagamento(id, vendaId, valor, data) {
+        fetch("../processar/pagamentos.php", {
+                method: "POST",
+                body: new URLSearchParams({
+                    acao: "editar_pagamento",
+                    id: id,
+                    venda_id: vendaId,
+                    valor: valor,
+                    data_pagamento: data
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(error => {
+                alert("Erro ao editar pagamento: " + error.message);
+                console.error(error);
+            });
+    }
+
+    function excluirPagamento(id, vendaId) {
+        if (confirm('Tem certeza que deseja excluir este pagamento? Isso também atualizará o status da venda.')) {
+            fetch("../processar/pagamentos.php", {
+                    method: "POST",
+                    body: new URLSearchParams({
+                        acao: "excluir_pagamento",
+                        id: id,
+                        venda_id: vendaId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        throw new Error(data.message);
+                    }
+                })
+                .catch(error => {
+                    alert("Erro ao excluir pagamento: " + error.message);
+                    console.error(error);
+                });
+        }
     }
 </script>
 

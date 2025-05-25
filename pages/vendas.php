@@ -105,13 +105,13 @@ $stmt = $conn->query($sql);
                 <td class="<?= $classe_status ?>"><?= ucfirst($row["status"]) ?></td>
                 <td><?= ucfirst($row["status_entrega"]) ?></td>
                 <td>
-                    <button class="btn btn-sm bg-success" onclick="registrarPagamento(<?= $row['id'] ?>)">Registrar Pagamento</button>
-                    <button class="btn btn-sm bg-warning" onclick="alterarStatusEntrega(<?= $row['id'] ?>)">
+                    <button class="btn btn-sm bg-success my-1" onclick="registrarPagamento(<?= $row['id'] ?>)">Registrar Pagamento</button>
+                    <button class="btn btn-sm bg-warning my-1" onclick="alterarStatusEntrega(<?= $row['id'] ?>)">
                         <?= $row["status_entrega"] == 'encomendado' ? 'Marcar Entregue' : 'Marcar Encomendado' ?>
                     </button>
-                    <button class="btn btn-sm bg-info" onclick="verHistoricoPagamentos(<?= $row['id'] ?>)">Histórico</button>
-                    <button class="btn btn-sm btn-edit" onclick="editarVendaSimples(<?= $row['id'] ?>)">Editar</button>
-                    <button class="btn btn-sm bg-danger" onclick="excluirVenda(<?= $row['id'] ?>)">Excluir</button>
+                    <button class="btn btn-sm bg-info my-1" onclick="verHistoricoPagamentos(<?= $row['id'] ?>)">Histórico</button>
+                    <button class="btn btn-sm btn-edit my-1" onclick="editarVendaSimples(<?= $row['id'] ?>)">Editar</button>
+                    <button class="btn btn-sm bg-danger my-1" onclick="excluirVenda(<?= $row['id'] ?>)">Excluir</button>
                 </td>
             </tr>
         <?php endwhile; ?>

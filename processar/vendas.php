@@ -8,11 +8,11 @@ $acao = $_POST["acao"] ?? "";
 try {
     switch ($acao) {
         case 'registrar_pagamento':
-            try {
-                $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
-                $valor = filter_input(INPUT_POST, 'valor', FILTER_VALIDATE_FLOAT);
-                $data_pagamento = filter_input(INPUT_POST, 'data_pagamento', FILTER_SANITIZE_STRING);
+            $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
+            $valor = filter_input(INPUT_POST, 'valor', FILTER_VALIDATE_FLOAT);
+            $data_pagamento = filter_input(INPUT_POST, 'data_pagamento', FILTER_SANITIZE_STRING) ?? date('Y-m-d');
 
+            try {
                 $conn->beginTransaction();
 
                 // 1. Insere o pagamento
@@ -260,11 +260,30 @@ try {
         case "excluir":
             $id = $_POST["id"];
 
-            $sql = "DELETE FROM vendas WHERE id = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([$id]);
+            try {
+                $conn->beginTransaction();
 
-            echo json_encode(["status" => "success", "message" => "Venda excluída com sucesso!"]);
+                // Primeiro excluir os itens da venda
+                $sql = "DELETE FROM itens_venda WHERE venda_id = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$id]);
+
+                // Depois excluir os pagamentos associados
+                $sql = "DELETE FROM pagamentos WHERE venda_id = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$id]);
+
+                // Finalmente excluir a venda
+                $sql = "DELETE FROM vendas WHERE id = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$id]);
+
+                $conn->commit();
+                echo json_encode(["status" => "success", "message" => "Venda excluída com sucesso!"]);
+            } catch (Exception $e) {
+                $conn->rollBack();
+                echo json_encode(["status" => "error", "message" => "Erro ao excluir venda: " . $e->getMessage()]);
+            }
             break;
 
         case "buscar":
@@ -298,7 +317,6 @@ try {
 
             echo json_encode(["status" => "success", "message" => "Venda marcada como paga com sucesso!"]);
             break;
-
         default:
             throw new Exception("Ação inválida");
     }

@@ -9,6 +9,29 @@ $sql_pendentes = "SELECT COUNT(*) as total
 $stmt = $conn->query($sql_pendentes);
 $total_pendentes = $stmt->fetch(PDO::FETCH_ASSOC)["total"];
 
+// Verifica encomendas pendentes
+$sql_encomendas = "SELECT COUNT(*) as total 
+                  FROM vendas v 
+                  WHERE v.status_entrega = 'encomendado'";
+$stmt = $conn->query($sql_encomendas);
+$total_encomendas = $stmt->fetch(PDO::FETCH_ASSOC)["total"];
+
+// Busca detalhes das encomendas pendentes
+$sql_encomendas_pendentes = "SELECT 
+    v.id,
+    d.nome as nome_devedor,
+    GROUP_CONCAT(p.nome SEPARATOR ', ') as produtos,
+    v.data_venda,
+    v.status
+    FROM vendas v 
+    JOIN devedores d ON v.devedor_id = d.id 
+    LEFT JOIN itens_venda iv ON v.id = iv.venda_id
+    LEFT JOIN produtos p ON iv.produto_id = p.id 
+    WHERE v.status_entrega = 'encomendado'
+    GROUP BY v.id, d.nome, v.data_venda, v.status
+    ORDER BY v.data_venda ASC";
+$stmt = $conn->query($sql_encomendas_pendentes);
+$encomendas_pendentes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Busca as próximas cobranças
 $sql_proximas = "SELECT 
@@ -65,7 +88,7 @@ $cobrancas_hoje = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <div class="row mb-4">
-    <div class="col-md-4">
+    <div class="col-md-4 my-3">
         <div class="card text-white <?php echo $total_pendentes > 0 ? 'btn-pending-charges' : 'bg-success'; ?>">
             <div class="card-body">
                 <h5 class="card-title">Cobranças Pendentes</h5>
@@ -73,7 +96,15 @@ $cobrancas_hoje = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-4 my-3">
+        <div class="card <?php echo $total_encomendas > 0 ? 'bg-warning text-dark' : 'bg-success text-white'; ?>">
+            <div class="card-body">
+                <h5 class="card-title">Encomendas Pendentes</h5>
+                <p class="card-text display-4"><?php echo $total_encomendas; ?></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 my-3">
         <div class="card btn-total-sales text-white">
             <div class="card-body">
                 <h5 class="card-title">Total em Vendas</h5>
@@ -81,7 +112,7 @@ $cobrancas_hoje = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-4 my-3">
         <div class="card btn-total-pending text-white">
             <div class="card-body">
                 <h5 class="card-title">Total Pendente</h5>
@@ -138,6 +169,35 @@ $cobrancas_hoje = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </table>
                     </div>
                 <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Adicionar um novo modal para encomendas pendentes -->
+<div class="modal fade" id="encomendasPendentesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">Encomendas Pendentes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="list-group">
+                    <?php foreach ($encomendas_pendentes as $encomenda): ?>
+                        <div class="list-group-item">
+                            <h6 class="mb-1"><?php echo htmlspecialchars($encomenda['nome_devedor']); ?></h6>
+                            <p class="mb-1">Produtos: <?php echo htmlspecialchars($encomenda['produtos']); ?></p>
+                            <p class="mb-1">Data: <?php echo formatarDataBR($encomenda['data_venda']); ?></p>
+                            <button class="btn btn-sm bg-success" onclick="marcarEntregue(<?php echo $encomenda['id']; ?>)">
+                                Marcar como Entregue
+                            </button>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
     </div>
@@ -276,6 +336,70 @@ $cobrancas_hoje = $stmt->fetchAll(PDO::FETCH_ASSOC);
             .catch(error => {
                 alert("Erro ao registrar pagamento");
                 console.error(error);
+            });
+    }
+
+    // Adicionar script para mostrar alerta de encomendas
+    document.addEventListener('DOMContentLoaded', function() {
+        const totalEncomendas = <?php echo $total_encomendas; ?>;
+
+        if (totalEncomendas > 0) {
+            // Criar um alerta flutuante
+            const alertaEncomendas = document.createElement('div');
+            alertaEncomendas.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            alertaEncomendas.style.zIndex = '1100';
+            alertaEncomendas.innerHTML = `
+            <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+                <div class="toast-header bg-warning text-dark">
+                    <strong class="me-auto">Encomendas Pendentes</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    <p>Existem <strong>${totalEncomendas}</strong> encomenda(s) pendente(s).</p>
+                    <div class="mt-2 pt-2 border-top">
+                        <button type="button" class="btn btn-warning btn-sm" onclick="mostrarEncomendasPendentes()">
+                            Ver Encomendas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+            // Adicionar o alerta ao body para que fique flutuante
+            document.body.appendChild(alertaEncomendas);
+
+            // Inicializar o toast
+            const toastElList = [].slice.call(document.querySelectorAll('.toast'));
+            toastElList.map(function(toastEl) {
+                return new bootstrap.Toast(toastEl);
+            });
+        }
+    });
+
+    function mostrarEncomendasPendentes() {
+        const modal = new bootstrap.Modal(document.getElementById('encomendasPendentesModal'));
+        modal.show();
+    }
+
+    function marcarEntregue(id) {
+        fetch("processar/vendas.php", {
+                method: "POST",
+                body: new URLSearchParams({
+                    acao: "alterar_status_entrega",
+                    id: id
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(error => {
+                alert("Erro ao atualizar status: " + error.message);
             });
     }
 </script>
