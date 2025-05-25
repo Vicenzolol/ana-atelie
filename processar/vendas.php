@@ -1,11 +1,23 @@
 <?php
+// Desativar exibição de erros no output
+ini_set('display_errors', 0);
+error_reporting(0);
+
+// Certificar-se de que nada foi enviado antes
+ob_start();
+
 require_once "../includes/conexao.php";
+
+// Limpar qualquer saída anterior
+ob_clean();
 
 header("Content-Type: application/json");
 
 $acao = $_POST["acao"] ?? "";
 
 try {
+    // Log para debug
+    error_log("Ação: $acao, Dados: " . json_encode($_POST));
     switch ($acao) {
         case 'registrar_pagamento':
             $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);

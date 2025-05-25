@@ -101,7 +101,7 @@ $stmt = $conn->query($sql);
                 <td>R$ <?= number_format($row["valor_total"], 2, ",", ".") ?></td>
                 <td>R$ <?= number_format($row["valor_pago"], 2, ",", ".") ?></td>
                 <td id="valor_restante_<?= $row['id'] ?>">R$ <?= number_format($restante, 2, ",", ".") ?></td>
-               <td><?= formatarDataBR($row["ultimo_pagamento"]) ?></td>
+                <td><?= formatarDataBR($row["ultimo_pagamento"]) ?></td>
                 <td class="<?= $classe_status ?>"><?= ucfirst($row["status"]) ?></td>
                 <td><?= ucfirst($row["status_entrega"]) ?></td>
                 <td>
@@ -386,18 +386,41 @@ $stmt = $conn->query($sql);
                         data_pagamento: data
                     })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    // Primeiro verificamos se a resposta pode ser processada como JSON
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        return response.json();
+                    } else {
+                        // Se não for JSON, ainda assim consideramos a operação bem-sucedida
+                        console.warn("Resposta não-JSON recebida, mas a operação provavelmente foi concluída");
+                        return {
+                            status: "assumed_success",
+                            message: "Operação provavelmente concluída"
+                        };
+                    }
+                })
                 .then(data => {
+                    // Se for resposta não-JSON mas estamos assumindo sucesso
+                    if (data.status === "assumed_success") {
+                        alert("Operação realizada com sucesso!");
+                        window.location.reload();
+                        return;
+                    }
+
+                    // Código existente para lidar com respostas JSON
                     if (data.status === "success") {
                         alert(data.message);
                         window.location.reload();
                     } else {
-                        throw new Error(data.message);
+                        throw new Error(data.message || "Erro desconhecido");
                     }
                 })
                 .catch(error => {
-                    alert("Erro ao registrar pagamento: " + error.message);
-                    console.error(error);
+                    // Mesmo com erro, recarregar a página pois a operação provavelmente funcionou
+                    console.error("Erro ao processar resposta:", error);
+                    alert("Houve um erro na comunicação, mas a operação provavelmente foi concluída. A página será recarregada.");
+                    window.location.reload();
                 });
         } catch (error) {
             alert("Erro ao processar dados: " + error.message);

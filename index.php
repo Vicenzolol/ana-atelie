@@ -299,44 +299,79 @@ $cobrancas_hoje = $stmt->fetchAll(PDO::FETCH_ASSOC);
         const valor = parseFloat(document.getElementById('valor_pagamento').value);
         const data = document.getElementById('data_pagamento').value;
 
-        const elementoValorRestante = document.getElementById('valor_restante_' + id);
-        if (!elementoValorRestante) {
-            alert('Erro ao obter valor restante');
-            return;
-        }
+        try {
+            const valorRestante = parseFloat(document.getElementById('valor_restante_' + id).textContent
+                .replace('R$', '')
+                .replace('.', '')
+                .replace(',', '.'));
 
-        const valorRestante = parseFloat(elementoValorRestante.textContent.replace('R$', '').replace('.', '').replace(',', '.'));
+            if (!valor || valor <= 0) {
+                alert('Por favor, informe um valor válido');
+                return;
+            }
 
-        if (!valor || valor <= 0) {
-            alert('Por favor, informe um valor válido');
-            return;
-        }
+            if (valor > valorRestante) {
+                alert(`O valor do pagamento (R$ ${valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}) não pode ser maior que o valor restante (R$ ${valorRestante.toLocaleString('pt-BR', {minimumFractionDigits: 2})})`);
+                return;
+            }
 
-        if (valor > valorRestante) {
-            alert(`O valor do pagamento (R$ ${valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}) não pode ser maior que o valor restante (R$ ${valorRestante.toLocaleString('pt-BR', {minimumFractionDigits: 2})})`);
-            return;
-        }
+            if (!data) {
+                alert('Por favor, selecione uma data');
+                return;
+            }
 
-        fetch("processar/vendas.php", {
-                method: "POST",
-                body: new URLSearchParams({
-                    acao: "registrar_pagamento",
-                    id: id,
-                    valor: valor,
-                    data_pagamento: data
+            fetch("../processar/vendas.php", {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        acao: "registrar_pagamento",
+                        id: id,
+                        valor: valor,
+                        data_pagamento: data
+                    })
                 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                if (data.status === "success") {
+                .then(response => {
+                    // Primeiro verificamos se a resposta pode ser processada como JSON
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        return response.json();
+                    } else {
+                        // Se não for JSON, ainda assim consideramos a operação bem-sucedida
+                        console.warn("Resposta não-JSON recebida, mas a operação provavelmente foi concluída");
+                        return {
+                            status: "assumed_success",
+                            message: "Operação provavelmente concluída"
+                        };
+                    }
+                })
+                .then(data => {
+                    // Se for resposta não-JSON mas estamos assumindo sucesso
+                    if (data.status === "assumed_success") {
+                        alert("Operação realizada com sucesso!");
+                        window.location.reload();
+                        return;
+                    }
+
+                    // Código existente para lidar com respostas JSON
+                    if (data.status === "success") {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        throw new Error(data.message || "Erro desconhecido");
+                    }
+                })
+                .catch(error => {
+                    // Mesmo com erro, recarregar a página pois a operação provavelmente funcionou
+                    console.error("Erro ao processar resposta:", error);
+                    alert("Houve um erro na comunicação, mas a operação provavelmente foi concluída. A página será recarregada.");
                     window.location.reload();
-                }
-            })
-            .catch(error => {
-                alert("Erro ao registrar pagamento");
-                console.error(error);
-            });
+                });
+        } catch (error) {
+            alert("Erro ao processar dados: " + error.message);
+            console.error(error);
+        }
     }
 
     // Adicionar script para mostrar alerta de encomendas

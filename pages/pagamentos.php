@@ -199,9 +199,6 @@ require_once "../includes/header.php";
         document.getElementById('pagamento_id').value = id;
         document.getElementById('pagamento_venda_id').value = vendaId;
 
-        // Debugging para identificar o formato exato da data recebida
-        console.log("Data original:", dataPagamento);
-
         // Formatar a data para o formato aceito pelo input date (YYYY-MM-DD)
         let dataFormatada;
 
@@ -241,7 +238,6 @@ require_once "../includes/header.php";
             }
         }
 
-        console.log("Data formatada:", dataFormatada);
         document.getElementById('data_pagamento').value = dataFormatada;
         document.getElementById('valor_pagamento').value = valor;
 
@@ -305,18 +301,29 @@ require_once "../includes/header.php";
                     data_pagamento: data
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                // Verificar o tipo de conteúdo da resposta
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    return response.json();
+                }
+                // Se não for JSON, captura o texto e lança um erro
+                return response.text().then(text => {
+                    console.error("Resposta não-JSON recebida:", text);
+                    throw new Error("Resposta inválida do servidor: não é JSON válido");
+                });
+            })
             .then(data => {
                 if (data.status === "success") {
                     alert(data.message);
                     window.location.reload();
                 } else {
-                    throw new Error(data.message);
+                    throw new Error(data.message || "Erro desconhecido");
                 }
             })
             .catch(error => {
                 alert("Erro ao editar pagamento: " + error.message);
-                console.error(error);
+                console.error("Detalhes do erro:", error);
             });
     }
 

@@ -1,5 +1,16 @@
 <?php
+// Desativar exibição de erros no output
+ini_set('display_errors', 0);
+error_reporting(0);
+
+// Certificar-se de que nada foi enviado antes
+ob_start();
+
 require_once "../includes/conexao.php";
+
+// Limpar qualquer saída anterior
+ob_clean();
+
 
 header("Content-Type: application/json");
 
@@ -104,6 +115,9 @@ try {
             $venda_id = filter_input(INPUT_POST, 'venda_id', FILTER_VALIDATE_INT);
             $valor = filter_input(INPUT_POST, 'valor', FILTER_VALIDATE_FLOAT);
             $data_pagamento = filter_input(INPUT_POST, 'data_pagamento', FILTER_SANITIZE_STRING);
+
+            // Log para debug
+            error_log("Editar pagamento - ID: $id, Venda: $venda_id, Valor: $valor, Data: $data_pagamento");
 
             // Validação adicional da data
             if (empty($data_pagamento) || $data_pagamento === '0000-00-00') {
