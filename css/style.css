@@ -1,0 +1,123 @@
+:root{
+    --primary-color: #dca1a1;
+    --secondary-color: #a4636c;
+    --font-family: 'Arial', sans-serif;
+    --font-size: 16px;
+    /* Novas variáveis de cores */
+    --edit-btn-color: #FFB0C1;
+    --pending-btn-color: #527955;
+    --sales-btn-color: #6DCEE4;
+    --total-pending-color: #C83535;
+    --success-color: #527955;
+    --warning-color: #FFFE92;
+    --danger-color: #C83535;
+    --info-color: #6DCEE4;
+}
+
+/* Botões de Editar e Novo Devedor */
+.btn-edit,
+.btn-new-debtor {
+    background-color: var(--edit-btn-color);
+    color: #000000;
+}
+
+/* Botão de Cobranças Pendentes */
+.btn-pending-charges {
+    background-color: var(--pending-btn-color);
+    color: #ffffff;
+}
+
+/* Botão Total em Vendas */
+.btn-total-sales {
+    background-color: var(--sales-btn-color);
+    color: #ffffff;
+}
+
+/* Botão Total Pendente */
+.btn-total-pending {
+    background-color: var(--total-pending-color);
+    color: #ffffff;
+}
+
+/* Classes de Status */
+.status-success {
+    color: var(--success-color);
+}
+
+.status-warning {
+    color: var(--warning-color);
+}
+
+.status-danger {
+    color: var(--danger-color);
+}
+
+.status-info {
+    color: var(--info-color);
+}
+
+/* Backgrounds */
+.bg-success {
+    background-color: var(--success-color) !important;
+    color: #ffffff;
+}
+
+.bg-warning {
+    background-color: var(--warning-color) !important;
+}
+
+.bg-danger {
+    background-color: var(--danger-color) !important;
+    color: #ffffff;
+}
+
+.bg-info {
+    background-color: var(--info-color) !important;
+
+}
+
+/* Botões de Editar e Novo Devedor */
+.btn-edit:hover,
+.btn-new-debtor:hover {
+    background-color: #e69dae;
+    transition: background-color 0.3s ease;
+}
+
+/* Botão de Cobranças Pendentes */
+.btn-pending-charges:hover {
+    background-color: #3f5d41;
+    transition: background-color 0.3s ease;
+}
+
+/* Botão Total em Vendas */
+.btn-total-sales:hover {
+    background-color: #5ab1c5;
+    transition: background-color 0.3s ease;
+}
+
+/* Botão Total Pendente */
+.btn-total-pending:hover {
+    background-color: #a12b2b;
+    transition: background-color 0.3s ease;
+}
+
+/* Backgrounds hover */
+.bg-success:hover {
+    background-color: #3f5d41;
+    transition: background-color 0.3s ease;
+}
+
+.bg-warning:hover {
+    background-color: #e6e583;
+    transition: background-color 0.3s ease;
+}
+
+.bg-danger:hover {
+    background-color: #a12b2b;
+    transition: background-color 0.3s ease;
+}
+
+.bg-info:hover {
+    background-color: #5ab1c5;
+    transition: background-color 0.3s ease;
+}
