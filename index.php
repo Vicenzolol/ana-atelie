@@ -51,9 +51,18 @@ $sql_proximas = "SELECT
     LEFT JOIN itens_venda iv ON v.id = iv.venda_id
     LEFT JOIN produtos p ON iv.produto_id = p.id 
     WHERE v.status IN ('pendente', 'parcialmente_pago')
+      AND (
+            (v.ultimo_pagamento IS NULL AND DATEDIFF(CURDATE(), v.data_venda) > 30)
+         OR (v.ultimo_pagamento IS NOT NULL AND DATEDIFF(CURDATE(), v.ultimo_pagamento) > 30)
+         OR (v.proximo_pagamento IS NOT NULL AND v.proximo_pagamento <= CURDATE())
+      )
     GROUP BY v.id, v.status, v.status_entrega, v.valor_total, v.valor_pago, v.data_venda, v.proximo_pagamento, d.nome
-    ORDER BY v.proximo_pagamento ASC
-    LIMIT 5";
+    ORDER BY 
+        CASE 
+            WHEN v.proximo_pagamento IS NOT NULL THEN v.proximo_pagamento
+            WHEN v.ultimo_pagamento IS NOT NULL THEN v.ultimo_pagamento
+            ELSE v.data_venda
+        END ASC";
 $stmt = $conn->query($sql_proximas);
 $proximas_cobrancas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
